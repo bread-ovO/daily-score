@@ -1,0 +1,38 @@
+{
+  "admin_user_ids": {
+    "description": "允许操作积分和查看报告的用户 ID 列表",
+    "type": "list",
+    "default": []
+  },
+  "enable_auto_report": {
+    "description": "启用日报和周报自动发送",
+    "type": "bool",
+    "default": true
+  },
+  "timezone": {
+    "description": "统计和定时任务使用的时区",
+    "type": "string",
+    "default": "Asia/Shanghai"
+  },
+  "daily_report_time": {
+    "description": "日报发送时间，格式 HH:MM",
+    "type": "string",
+    "default": "23:55"
+  },
+  "weekly_report_day": {
+    "description": "周报发送星期，支持 Sunday 或 周日",
+    "type": "string",
+    "default": "Sunday",
+    "options": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday", "周一", "周二", "周三", "周四", "周五", "周六", "周日"]
+  },
+  "weekly_report_time": {
+    "description": "周报发送时间，格式 HH:MM",
+    "type": "string",
+    "default": "23:58"
+  },
+  "ranking_limit": {
+    "description": "报告中展示的最大排名数",
+    "type": "int",
+    "default": 10
+  }
+}
