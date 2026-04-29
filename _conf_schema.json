@@ -1,6 +1,6 @@
 {
   "admin_user_ids": {
-    "description": "允许操作积分和查看报告的用户 ID 列表",
+    "description": "允许操作积分和查看报告的用户 ID 列表，留空表示全体可用",
     "type": "list",
     "default": []
   },

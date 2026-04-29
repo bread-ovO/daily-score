@@ -364,7 +364,7 @@ class DailyScorePlugin(Star):
 
     def _is_config_admin(self, user_id: str) -> bool:
         admin_ids = self._config_list("admin_user_ids")
-        return str(user_id) in {str(item) for item in admin_ids}
+        return not admin_ids or str(user_id) in {str(item) for item in admin_ids}
 
     def _is_group_allowed(self, group_id: str) -> bool:
         group_ids = self._config_list("group_whitelist")
