@@ -18,6 +18,7 @@
 ```json
 {
   "admin_user_ids": ["123456"],
+  "group_whitelist": ["987654321"],
   "enable_auto_report": true,
   "timezone": "Asia/Shanghai",
   "daily_report_time": "23:55",
@@ -27,7 +28,7 @@
 }
 ```
 
-`admin_user_ids` 填允许操作积分的用户 ID。自动报告依赖群聊里已有一次有效管理命令或手动报告命令，用于记录 AstrBot 的 `unified_msg_origin`。
+`admin_user_ids` 填允许操作积分的用户 ID。`group_whitelist` 填允许使用插件的群 ID，留空表示所有群可用。自动报告依赖群聊里已有一次有效管理命令或手动报告命令，用于记录 AstrBot 的 `unified_msg_origin`。
 
 ## 命令
 

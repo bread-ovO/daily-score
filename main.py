@@ -95,6 +95,9 @@ class DailyScorePlugin(Star):
         if not group_id or not operator_id:
             return
 
+        if not self._is_group_allowed(group_id):
+            return
+
         if not self._is_config_admin(operator_id):
             yield event.plain_result("你没有积分管理权限")
             return
@@ -145,6 +148,10 @@ class DailyScorePlugin(Star):
         group_id = self._get_group_id(event)
         operator_id = self._get_sender_id(event)
         if not group_id or not operator_id:
+            return
+
+        if not self._is_group_allowed(group_id):
+            yield event.plain_result("当前群未启用积分插件")
             return
 
         if not self._is_config_admin(operator_id):
@@ -208,6 +215,8 @@ class DailyScorePlugin(Star):
     def _collect_report_tasks(self, period: str, now: datetime) -> List[Tuple[str, str, str]]:
         tasks: List[Tuple[str, str, str]] = []
         for group_id, group in self._data.get("groups", {}).items():
+            if not self._is_group_allowed(group_id):
+                continue
             origin = group.get("unified_msg_origin")
             if origin:
                 tasks.append((origin, period, self._build_report(group_id, period, now)))
@@ -354,10 +363,12 @@ class DailyScorePlugin(Star):
         group.setdefault("members", {})[user_id] = {"name": name or user_id}
 
     def _is_config_admin(self, user_id: str) -> bool:
-        admin_ids = self.config.get("admin_user_ids", [])
-        if isinstance(admin_ids, str):
-            admin_ids = [item.strip() for item in admin_ids.split(",") if item.strip()]
+        admin_ids = self._config_list("admin_user_ids")
         return str(user_id) in {str(item) for item in admin_ids}
+
+    def _is_group_allowed(self, group_id: str) -> bool:
+        group_ids = self._config_list("group_whitelist")
+        return not group_ids or str(group_id) in {str(item) for item in group_ids}
 
     def _message_text(self, event: AstrMessageEvent) -> str:
         return str(getattr(event, "message_str", "") or getattr(event.message_obj, "message_str", ""))
@@ -422,6 +433,14 @@ class DailyScorePlugin(Star):
         if isinstance(value, str):
             return value.strip().lower() in {"1", "true", "yes", "on", "是"}
         return bool(value)
+
+    def _config_list(self, key: str) -> List[str]:
+        value = self.config.get(key, [])
+        if isinstance(value, str):
+            return [item.strip() for item in value.split(",") if item.strip()]
+        if isinstance(value, list):
+            return [str(item).strip() for item in value if str(item).strip()]
+        return []
 
     def _first_attr(self, obj: Any, names: Iterable[str]) -> Any:
         if obj is None:
