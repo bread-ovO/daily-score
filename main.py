@@ -41,7 +41,7 @@ WEEKDAY_NAMES = {
 }
 
 
-@register(PLUGIN_NAME, "yinchangyu", "群聊每日积分日报和周报插件", "1.3.0")
+@register(PLUGIN_NAME, "yinchangyu", "群聊每日积分日报和周报插件", "1.4.0")
 class DailyScorePlugin(Star):
     def __init__(self, context: Context, config: Optional[AstrBotConfig] = None):
         super().__init__(context)
@@ -109,6 +109,20 @@ class DailyScorePlugin(Star):
     async def detail_report_alias(self, event: AstrMessageEvent):
         """发送本群积分明细"""
         async for result in self._handle_detail_report(event):
+            yield result
+
+    @score.command("reset")
+    @filter.event_message_type(filter.EventMessageType.GROUP_MESSAGE)
+    async def reset_score(self, event: AstrMessageEvent):
+        """清空本群积分记录"""
+        async for result in self._handle_reset_score(event):
+            yield result
+
+    @score.command("重置")
+    @filter.event_message_type(filter.EventMessageType.GROUP_MESSAGE)
+    async def reset_score_zh(self, event: AstrMessageEvent):
+        """清空本群积分记录"""
+        async for result in self._handle_reset_score(event):
             yield result
 
     @filter.event_message_type(filter.EventMessageType.GROUP_MESSAGE)
@@ -221,6 +235,29 @@ class DailyScorePlugin(Star):
             await self._save_data_locked()
 
         yield event.plain_result(text)
+
+    async def _handle_reset_score(self, event: AstrMessageEvent):
+        group_id = self._get_group_id(event)
+        operator_id = self._get_sender_id(event)
+        if not group_id or not operator_id:
+            return
+
+        if not self._is_group_allowed(group_id):
+            yield event.plain_result("当前群未启用积分插件")
+            return
+
+        if not self._is_reset_user(operator_id):
+            yield event.plain_result("只有配置中的用户可以重置积分记录")
+            return
+
+        async with self._lock:
+            group = self._ensure_group(group_id)
+            self._remember_origin(group, event)
+            cleared_count = len(group.get("records", []))
+            group["records"] = []
+            await self._save_data_locked()
+
+        yield event.plain_result(f"已清空本群积分记录，共 {cleared_count} 条")
 
     async def _scheduler_loop(self):
         while True:
@@ -527,6 +564,10 @@ class DailyScorePlugin(Star):
     def _is_config_admin(self, user_id: str) -> bool:
         admin_ids = self._config_list("admin_user_ids")
         return not admin_ids or str(user_id) in {str(item) for item in admin_ids}
+
+    def _is_reset_user(self, user_id: str) -> bool:
+        reset_user_ids = self._config_list("reset_user_ids")
+        return str(user_id) in {str(item) for item in reset_user_ids}
 
     def _is_group_allowed(self, group_id: str) -> bool:
         group_ids = self._config_list("group_whitelist")
