@@ -14,6 +14,11 @@
     "type": "bool",
     "default": true
   },
+  "report_subscribe_groups": {
+    "description": "订阅自动日报和周报的群 ID 列表，留空表示不自动发送",
+    "type": "list",
+    "default": []
+  },
   "timezone": {
     "description": "统计和定时任务使用的时区",
     "type": "string",
@@ -39,5 +44,10 @@
     "description": "报告中展示的最大排名数",
     "type": "int",
     "default": 10
+  },
+  "detail_limit": {
+    "description": "积分明细中展示的最大记录数",
+    "type": "int",
+    "default": 20
   }
 }

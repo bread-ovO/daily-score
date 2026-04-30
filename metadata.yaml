@@ -1,6 +1,6 @@
 name: astrbot_plugin_daily_score
 display_name: Daily Score
-desc: 群聊每日积分、日报和周报排名插件。
-version: v1.1.0
+desc: 群聊每日积分、日报、周报、排名和明细插件。
+version: v1.3.0
 author: yinchangyu
 repo: https://github.com/bread-ovO/daily-score

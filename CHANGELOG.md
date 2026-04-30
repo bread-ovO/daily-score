@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.3.0
+
+- 加分和扣分记录支持保存操作理由。
+- 新增 `/score detail`、`/score details`、`/score 明细` 和 `/分数明细` 积分明细命令。
+- 新增 `detail_limit` 配置控制明细显示条数。
+
+## v1.2.0
+
+- 新增自动报告订阅配置 `report_subscribe_groups`，只有配置中的群会收到日报和周报。
+- 自动报告订阅列表留空时不发送日报和周报。
+
 ## v1.1.0
 
 - 新增群聊白名单配置 `group_whitelist`，留空时所有群可用。

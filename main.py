@@ -41,7 +41,7 @@ WEEKDAY_NAMES = {
 }
 
 
-@register(PLUGIN_NAME, "yinchangyu", "群聊每日积分日报和周报插件", "1.0.0")
+@register(PLUGIN_NAME, "yinchangyu", "群聊每日积分日报和周报插件", "1.3.0")
 class DailyScorePlugin(Star):
     def __init__(self, context: Context, config: Optional[AstrBotConfig] = None):
         super().__init__(context)
@@ -83,6 +83,34 @@ class DailyScorePlugin(Star):
         async for result in self._handle_manual_report(event, "total"):
             yield result
 
+    @score.command("detail")
+    @filter.event_message_type(filter.EventMessageType.GROUP_MESSAGE)
+    async def detail_report(self, event: AstrMessageEvent):
+        """发送本群积分明细"""
+        async for result in self._handle_detail_report(event):
+            yield result
+
+    @score.command("details")
+    @filter.event_message_type(filter.EventMessageType.GROUP_MESSAGE)
+    async def details_report(self, event: AstrMessageEvent):
+        """发送本群积分明细"""
+        async for result in self._handle_detail_report(event):
+            yield result
+
+    @score.command("明细")
+    @filter.event_message_type(filter.EventMessageType.GROUP_MESSAGE)
+    async def detail_report_zh(self, event: AstrMessageEvent):
+        """发送本群积分明细"""
+        async for result in self._handle_detail_report(event):
+            yield result
+
+    @filter.command("分数明细")
+    @filter.event_message_type(filter.EventMessageType.GROUP_MESSAGE)
+    async def detail_report_alias(self, event: AstrMessageEvent):
+        """发送本群积分明细"""
+        async for result in self._handle_detail_report(event):
+            yield result
+
     @filter.event_message_type(filter.EventMessageType.GROUP_MESSAGE)
     async def handle_score_message(self, event: AstrMessageEvent):
         """处理 @成员 加一分 / @成员 扣一分"""
@@ -102,7 +130,7 @@ class DailyScorePlugin(Star):
             yield event.plain_result("你没有积分管理权限")
             return
 
-        target_id, target_name, delta, error = parsed
+        target_id, target_name, delta, reason, error = parsed
         if error:
             yield event.plain_result(error)
             return
@@ -118,6 +146,7 @@ class DailyScorePlugin(Star):
                 "target_id": target_id,
                 "target_name": target_name,
                 "delta": delta,
+                "reason": reason,
                 "timestamp": int(now.timestamp()),
                 "date": now.date().isoformat(),
                 "iso_week": self._iso_week_key(now),
@@ -130,8 +159,9 @@ class DailyScorePlugin(Star):
             await self._save_data_locked()
 
         action = "加" if delta > 0 else "扣"
+        reason_text = f"，理由：{reason}" if reason else ""
         yield event.plain_result(
-            f"已为 {target_name} {action} 1 分，今日：{today_score}，本周：{week_score}"
+            f"已为 {target_name} {action} 1 分，今日：{today_score}，本周：{week_score}{reason_text}"
         )
 
     async def terminate(self):
@@ -162,6 +192,32 @@ class DailyScorePlugin(Star):
             group = self._ensure_group(group_id)
             self._remember_origin(group, event)
             text = self._build_report(group_id, period, self._now())
+            await self._save_data_locked()
+
+        yield event.plain_result(text)
+
+    async def _handle_detail_report(self, event: AstrMessageEvent):
+        group_id = self._get_group_id(event)
+        operator_id = self._get_sender_id(event)
+        if not group_id or not operator_id:
+            return
+
+        if not self._is_group_allowed(group_id):
+            yield event.plain_result("当前群未启用积分插件")
+            return
+
+        if not self._is_config_admin(operator_id):
+            yield event.plain_result("你没有积分管理权限")
+            return
+
+        period = self._parse_detail_period(event)
+        at_users = self._extract_at_users(event)
+        target_id = at_users[0][0] if len(at_users) == 1 else ""
+
+        async with self._lock:
+            group = self._ensure_group(group_id)
+            self._remember_origin(group, event)
+            text = self._build_detail_report(group_id, period, self._now(), target_id)
             await self._save_data_locked()
 
         yield event.plain_result(text)
@@ -217,6 +273,8 @@ class DailyScorePlugin(Star):
         for group_id, group in self._data.get("groups", {}).items():
             if not self._is_group_allowed(group_id):
                 continue
+            if not self._is_report_subscribed(group_id):
+                continue
             origin = group.get("unified_msg_origin")
             if origin:
                 tasks.append((origin, period, self._build_report(group_id, period, now)))
@@ -231,12 +289,19 @@ class DailyScorePlugin(Star):
 
         at_users = self._extract_at_users(event)
         if has_add and has_sub:
-            return "", "", 0, "一次只能选择加一分或扣一分"
+            return "", "", 0, "", "一次只能选择加一分或扣一分"
         if len(at_users) != 1:
-            return "", "", 0, "请在消息中 @ 一位成员"
+            return "", "", 0, "", "请在消息中 @ 一位成员"
 
         target_id, target_name = at_users[0]
-        return target_id, target_name, 1 if has_add else -1, ""
+        trigger = "加一分" if has_add else "扣一分"
+        return (
+            target_id,
+            target_name,
+            1 if has_add else -1,
+            self._parse_score_reason(text, trigger),
+            "",
+        )
 
     def _extract_at_users(self, event: AstrMessageEvent) -> List[Tuple[str, str]]:
         users: List[Tuple[str, str]] = []
@@ -257,6 +322,40 @@ class DailyScorePlugin(Star):
             )
             users.append((target_id, str(target_name or target_id)))
         return users
+
+    def _parse_score_reason(self, text: str, trigger: str) -> str:
+        trigger_index = text.find(trigger)
+        if trigger_index < 0:
+            return ""
+        reason = text[trigger_index + len(trigger):].strip()
+        prefixes = (
+            "理由：",
+            "理由:",
+            "原因：",
+            "原因:",
+            "因为",
+            "：",
+            ":",
+            "-",
+            "，",
+            ",",
+        )
+        changed = True
+        while changed:
+            changed = False
+            for prefix in prefixes:
+                if reason.startswith(prefix):
+                    reason = reason[len(prefix):].strip()
+                    changed = True
+        return reason
+
+    def _parse_detail_period(self, event: AstrMessageEvent) -> str:
+        text = self._message_text(event).lower()
+        if any(keyword in text for keyword in ("weekly", "week", "本周", "周报")):
+            return "weekly"
+        if any(keyword in text for keyword in ("total", "all", "累计", "全部", "总分")):
+            return "total"
+        return "daily"
 
     def _build_report(self, group_id: str, period: str, now: datetime) -> str:
         group = self._data.get("groups", {}).get(group_id, {})
@@ -294,6 +393,69 @@ class DailyScorePlugin(Star):
         for index, (target_id, score) in enumerate(ranked[:ranking_limit], start=1):
             name = members.get(target_id, {}).get("name") or latest_names.get(target_id) or target_id
             lines.append(f"{index}. {name} {score}分")
+        return "\n".join(lines)
+
+    def _build_detail_report(
+        self, group_id: str, period: str, now: datetime, target_id: str = ""
+    ) -> str:
+        group = self._data.get("groups", {}).get(group_id, {})
+        records = group.get("records", [])
+        members = group.get("members", {})
+        detail_limit = max(1, int(self._config_int("detail_limit", 20)))
+
+        if period == "weekly":
+            title = f"本周积分明细 {self._iso_week_key(now)}"
+            filtered = [
+                record
+                for record in records
+                if record.get("iso_week") == self._iso_week_key(now)
+            ]
+            empty_text = "本周暂无积分记录"
+        elif period == "total":
+            title = "累计积分明细"
+            filtered = list(records)
+            empty_text = "暂无积分记录"
+        else:
+            title = f"今日积分明细 {now.date().isoformat()}"
+            filtered = [
+                record
+                for record in records
+                if record.get("date") == now.date().isoformat()
+            ]
+            empty_text = "今日暂无积分记录"
+
+        if target_id:
+            filtered = [
+                record
+                for record in filtered
+                if str(record.get("target_id", "")) == target_id
+            ]
+            target_name = members.get(target_id, {}).get("name") or target_id
+            title = f"{title} - {target_name}"
+
+        if not filtered:
+            return f"{title}\n{empty_text}"
+
+        sorted_records = sorted(
+            filtered,
+            key=lambda record: int(record.get("timestamp", 0)),
+            reverse=True,
+        )
+        lines = [title]
+        for record in sorted_records[:detail_limit]:
+            record_target_id = str(record.get("target_id", ""))
+            target_name = (
+                members.get(record_target_id, {}).get("name")
+                or record.get("target_name")
+                or record_target_id
+            )
+            delta = int(record.get("delta", 0))
+            sign = "+" if delta > 0 else ""
+            reason = str(record.get("reason") or "未填写理由")
+            time_text = self._format_record_time(record, now)
+            lines.append(f"{time_text} {target_name} {sign}{delta}分，理由：{reason}")
+        if len(sorted_records) > detail_limit:
+            lines.append(f"仅显示最近 {detail_limit} 条，共 {len(sorted_records)} 条")
         return "\n".join(lines)
 
     def _sum_records(
@@ -370,6 +532,10 @@ class DailyScorePlugin(Star):
         group_ids = self._config_list("group_whitelist")
         return not group_ids or str(group_id) in {str(item) for item in group_ids}
 
+    def _is_report_subscribed(self, group_id: str) -> bool:
+        group_ids = self._config_list("report_subscribe_groups")
+        return str(group_id) in {str(item) for item in group_ids}
+
     def _message_text(self, event: AstrMessageEvent) -> str:
         return str(getattr(event, "message_str", "") or getattr(event.message_obj, "message_str", ""))
 
@@ -405,6 +571,17 @@ class DailyScorePlugin(Star):
     def _iso_week_key(self, value: datetime) -> str:
         iso = value.isocalendar()
         return f"{iso.year}-W{iso.week:02d}"
+
+    def _format_record_time(self, record: Dict[str, Any], now: datetime) -> str:
+        timestamp = record.get("timestamp")
+        if timestamp:
+            try:
+                return datetime.fromtimestamp(int(timestamp), now.tzinfo).strftime(
+                    "%m-%d %H:%M"
+                )
+            except Exception:
+                pass
+        return str(record.get("date") or "")
 
     def _parse_hhmm(self, value: str) -> Tuple[int, int]:
         try:
