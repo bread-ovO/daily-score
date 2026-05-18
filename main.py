@@ -40,8 +40,231 @@ WEEKDAY_NAMES = {
     "星期天": 6,
 }
 
+RANKING_TEMPLATE = """
+<div class="score-board">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", sans-serif;
+      color: #18212f;
+      background: #eef2f7;
+    }
+    .score-board {
+      width: 920px;
+      padding: 34px;
+      background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 52%, #e7edf5 100%);
+    }
+    .panel {
+      overflow: hidden;
+      border: 1px solid #d8e0ea;
+      border-radius: 8px;
+      background: #ffffff;
+      box-shadow: 0 24px 60px rgba(43, 58, 78, 0.14);
+    }
+    .hero {
+      padding: 30px 34px 24px;
+      background: #1f2937;
+      color: #f9fafb;
+    }
+    .kicker {
+      font-size: 18px;
+      font-weight: 700;
+      color: #93c5fd;
+    }
+    h1 {
+      margin: 10px 0 8px;
+      font-size: 46px;
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+    .meta {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      color: #d1d5db;
+      font-size: 18px;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: #e5e7eb;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .stat {
+      padding: 18px 22px;
+      background: #ffffff;
+    }
+    .stat-label {
+      color: #667085;
+      font-size: 15px;
+    }
+    .stat-value {
+      margin-top: 7px;
+      font-size: 28px;
+      font-weight: 800;
+      color: #111827;
+    }
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th {
+      padding: 14px 18px;
+      text-align: left;
+      color: #667085;
+      font-size: 14px;
+      font-weight: 700;
+      background: #f8fafc;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    td {
+      padding: 16px 18px;
+      border-bottom: 1px solid #edf0f3;
+      font-size: 18px;
+      vertical-align: middle;
+    }
+    tr:last-child td {
+      border-bottom: 0;
+    }
+    .rank {
+      width: 70px;
+      font-size: 22px;
+      font-weight: 900;
+      color: #111827;
+    }
+    .medal {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      color: #ffffff;
+      background: #64748b;
+    }
+    .medal.top-1 {
+      background: #d97706;
+    }
+    .medal.top-2 {
+      background: #64748b;
+    }
+    .medal.top-3 {
+      background: #a16207;
+    }
+    .name {
+      max-width: 330px;
+      font-size: 22px;
+      font-weight: 800;
+      color: #111827;
+      word-break: break-word;
+    }
+    .id {
+      margin-top: 4px;
+      color: #98a2b3;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .score {
+      font-size: 28px;
+      font-weight: 900;
+      color: #2563eb;
+      white-space: nowrap;
+    }
+    .metric {
+      color: #344054;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .positive {
+      color: #15803d;
+    }
+    .negative {
+      color: #b42318;
+    }
+    .empty {
+      padding: 44px 34px;
+      color: #667085;
+      font-size: 24px;
+      text-align: center;
+    }
+    .footer {
+      padding: 18px 34px 24px;
+      color: #667085;
+      font-size: 15px;
+      background: #f8fafc;
+      border-top: 1px solid #e5e7eb;
+    }
+  </style>
+  <div class="panel">
+    <div class="hero">
+      <div class="kicker">{{ period_label }}</div>
+      <h1>智人排行</h1>
+      <div class="meta">
+        <span>{{ range_label }}</span>
+        <span>默认倒序排行</span>
+        <span>{{ generated_at }}</span>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-label">上榜智人</div>
+        <div class="stat-value">{{ stats.member_count }}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">总分</div>
+        <div class="stat-value">{{ stats.total_score }}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">加分</div>
+        <div class="stat-value">{{ stats.add_count }}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">扣分</div>
+        <div class="stat-value">{{ stats.sub_count }}</div>
+      </div>
+    </div>
+    {% if rows %}
+    <table class="table">
+      <thead>
+        <tr>
+          <th>名次</th>
+          <th>智人</th>
+          <th>分数</th>
+          <th>加分</th>
+          <th>扣分</th>
+          <th>记录</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td class="rank"><span class="medal top-{{ row.rank }}">{{ row.rank }}</span></td>
+          <td>
+            <div class="name">{{ row.name }}</div>
+            <div class="id">ID {{ row.target_id }}</div>
+          </td>
+          <td class="score">{{ row.score }}分</td>
+          <td class="metric positive">+{{ row.add_count }}</td>
+          <td class="metric negative">-{{ row.sub_count }}</td>
+          <td class="metric">{{ row.record_count }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">{{ empty_text }}</div>
+    {% endif %}
+    <div class="footer">展示前 {{ ranking_limit }} 名，按分数从高到低排列，同分按用户 ID 升序排列。</div>
+  </div>
+</div>
+"""
 
-@register(PLUGIN_NAME, "yinchangyu", "群聊每日积分日报和周报插件", "1.4.0")
+
+@register(PLUGIN_NAME, "yinchangyu", "群聊每日积分日报和周报插件", "1.5.0")
 class DailyScorePlugin(Star):
     def __init__(self, context: Context, config: Optional[AstrBotConfig] = None):
         super().__init__(context)
@@ -74,6 +297,27 @@ class DailyScorePlugin(Star):
     async def weekly_report(self, event: AstrMessageEvent):
         """发送本群本周周报排名"""
         async for result in self._handle_manual_report(event, "weekly"):
+            yield result
+
+    @score.command("monthly")
+    @filter.event_message_type(filter.EventMessageType.GROUP_MESSAGE)
+    async def monthly_report(self, event: AstrMessageEvent):
+        """发送本群本月月榜排名"""
+        async for result in self._handle_manual_report(event, "monthly"):
+            yield result
+
+    @score.command("month")
+    @filter.event_message_type(filter.EventMessageType.GROUP_MESSAGE)
+    async def month_report(self, event: AstrMessageEvent):
+        """发送本群本月月榜排名"""
+        async for result in self._handle_manual_report(event, "monthly"):
+            yield result
+
+    @score.command("月榜")
+    @filter.event_message_type(filter.EventMessageType.GROUP_MESSAGE)
+    async def monthly_report_zh(self, event: AstrMessageEvent):
+        """发送本群本月月榜排名"""
+        async for result in self._handle_manual_report(event, "monthly"):
             yield result
 
     @score.command("total")
@@ -148,6 +392,9 @@ class DailyScorePlugin(Star):
         if error:
             yield event.plain_result(error)
             return
+        if target_id == operator_id and delta < 0:
+            yield event.plain_result("自己不能给自己扣分")
+            return
 
         now = self._now()
         async with self._lock:
@@ -205,9 +452,14 @@ class DailyScorePlugin(Star):
         async with self._lock:
             group = self._ensure_group(group_id)
             self._remember_origin(group, event)
-            text = self._build_report(group_id, period, self._now())
+            payload = self._build_report_payload(group_id, period, self._now())
+            text = self._format_report_text(payload)
             await self._save_data_locked()
 
+        image_url = await self._render_report_image(payload)
+        if image_url:
+            yield event.image_result(image_url)
+            return
         yield event.plain_result(text)
 
     async def _handle_detail_report(self, event: AstrMessageEvent):
@@ -286,7 +538,7 @@ class DailyScorePlugin(Star):
                 and reports.get("weekly_iso_week") != self._iso_week_key(now)
             )
 
-            tasks: List[Tuple[str, str, str]] = []
+            tasks: List[Tuple[str, str, Dict[str, Any]]] = []
             if should_daily:
                 reports["daily_date"] = now.date().isoformat()
                 tasks.extend(self._collect_report_tasks("daily", now))
@@ -297,16 +549,25 @@ class DailyScorePlugin(Star):
             if tasks:
                 await self._save_data_locked()
 
-        for unified_msg_origin, period, text in tasks:
+        for unified_msg_origin, period, payload in tasks:
+            text = self._format_report_text(payload)
             try:
+                image_url = await self._render_report_image(payload)
+                if image_url:
+                    await self.context.send_message(
+                        unified_msg_origin, MessageChain().url_image(image_url)
+                    )
+                    continue
                 await self.context.send_message(
                     unified_msg_origin, MessageChain().message(text)
                 )
             except Exception as exc:
                 logger.error(f"daily score send {period} report failed: {exc}")
 
-    def _collect_report_tasks(self, period: str, now: datetime) -> List[Tuple[str, str, str]]:
-        tasks: List[Tuple[str, str, str]] = []
+    def _collect_report_tasks(
+        self, period: str, now: datetime
+    ) -> List[Tuple[str, str, Dict[str, Any]]]:
+        tasks: List[Tuple[str, str, Dict[str, Any]]] = []
         for group_id, group in self._data.get("groups", {}).items():
             if not self._is_group_allowed(group_id):
                 continue
@@ -314,7 +575,9 @@ class DailyScorePlugin(Star):
                 continue
             origin = group.get("unified_msg_origin")
             if origin:
-                tasks.append((origin, period, self._build_report(group_id, period, now)))
+                tasks.append(
+                    (origin, period, self._build_report_payload(group_id, period, now))
+                )
         return tasks
 
     def _parse_score_command(self, event: AstrMessageEvent):
@@ -394,7 +657,9 @@ class DailyScorePlugin(Star):
             return "total"
         return "daily"
 
-    def _build_report(self, group_id: str, period: str, now: datetime) -> str:
+    def _build_report_payload(
+        self, group_id: str, period: str, now: datetime
+    ) -> Dict[str, Any]:
         group = self._data.get("groups", {}).get(group_id, {})
         records = group.get("records", [])
         members = group.get("members", {})
@@ -402,35 +667,126 @@ class DailyScorePlugin(Star):
 
         if period == "daily":
             title = f"今日积分日报 {now.date().isoformat()}"
-            filtered = [record for record in records if record.get("date") == now.date().isoformat()]
+            period_label = "今日积分日报"
+            range_label = now.date().isoformat()
+            filtered = [
+                record
+                for record in records
+                if record.get("date") == now.date().isoformat()
+            ]
             empty_text = "今日暂无积分记录"
         elif period == "weekly":
             title = f"本周积分周报 {self._iso_week_key(now)}"
-            filtered = [record for record in records if record.get("iso_week") == self._iso_week_key(now)]
+            period_label = "本周积分周报"
+            range_label = self._iso_week_key(now)
+            filtered = [
+                record
+                for record in records
+                if record.get("iso_week") == self._iso_week_key(now)
+            ]
             empty_text = "本周暂无积分记录"
+        elif period == "monthly":
+            month_key = self._month_key(now)
+            title = f"智人分数最高月榜 {month_key}"
+            period_label = "智人分数最高月榜"
+            range_label = month_key
+            filtered = [
+                record
+                for record in records
+                if str(record.get("date", "")).startswith(month_key)
+            ]
+            empty_text = "本月暂无积分记录"
         else:
             title = "累计积分排名"
+            period_label = "累计积分排名"
+            range_label = "全部历史"
             filtered = list(records)
             empty_text = "暂无积分记录"
 
-        totals: Dict[str, int] = defaultdict(int)
+        totals: Dict[str, Dict[str, int]] = defaultdict(
+            lambda: {"score": 0, "add_count": 0, "sub_count": 0, "record_count": 0}
+        )
         latest_names: Dict[str, str] = {}
         for record in filtered:
             target_id = str(record.get("target_id", ""))
             if not target_id:
                 continue
-            totals[target_id] += int(record.get("delta", 0))
+            delta = int(record.get("delta", 0))
+            totals[target_id]["score"] += delta
+            totals[target_id]["record_count"] += 1
+            if delta > 0:
+                totals[target_id]["add_count"] += 1
+            elif delta < 0:
+                totals[target_id]["sub_count"] += 1
             latest_names[target_id] = str(record.get("target_name") or target_id)
 
-        if not totals:
-            return f"{title}\n{empty_text}"
+        ranked = sorted(
+            totals.items(), key=lambda item: (-item[1]["score"], item[0])
+        )
+        rows: List[Dict[str, Any]] = []
+        for index, (target_id, summary) in enumerate(
+            ranked[:ranking_limit], start=1
+        ):
+            name = (
+                members.get(target_id, {}).get("name")
+                or latest_names.get(target_id)
+                or target_id
+            )
+            rows.append(
+                {
+                    "rank": index,
+                    "target_id": target_id,
+                    "name": name,
+                    "score": summary["score"],
+                    "add_count": summary["add_count"],
+                    "sub_count": summary["sub_count"],
+                    "record_count": summary["record_count"],
+                }
+            )
 
-        ranked = sorted(totals.items(), key=lambda item: (-item[1], item[0]))
-        lines = [title]
-        for index, (target_id, score) in enumerate(ranked[:ranking_limit], start=1):
-            name = members.get(target_id, {}).get("name") or latest_names.get(target_id) or target_id
-            lines.append(f"{index}. {name} {score}分")
+        stats = {
+            "member_count": len(totals),
+            "total_score": sum(summary["score"] for summary in totals.values()),
+            "add_count": sum(summary["add_count"] for summary in totals.values()),
+            "sub_count": sum(summary["sub_count"] for summary in totals.values()),
+            "record_count": len(filtered),
+        }
+        return {
+            "title": title,
+            "period_label": period_label,
+            "range_label": range_label,
+            "empty_text": empty_text,
+            "ranking_limit": ranking_limit,
+            "rows": rows,
+            "stats": stats,
+            "generated_at": now.strftime("%Y-%m-%d %H:%M"),
+        }
+
+    def _build_report(self, group_id: str, period: str, now: datetime) -> str:
+        return self._format_report_text(
+            self._build_report_payload(group_id, period, now)
+        )
+
+    def _format_report_text(self, payload: Dict[str, Any]) -> str:
+        lines = [str(payload["title"])]
+        rows = payload.get("rows", [])
+        if not rows:
+            lines.append(str(payload["empty_text"]))
+            return "\n".join(lines)
+        for row in rows:
+            lines.append(f"{row['rank']}. {row['name']} {row['score']}分")
         return "\n".join(lines)
+
+    async def _render_report_image(self, payload: Dict[str, Any]) -> str:
+        try:
+            return await self.html_render(
+                RANKING_TEMPLATE,
+                payload,
+                options={"type": "png", "full_page": True},
+            )
+        except Exception as exc:
+            logger.error(f"daily score render ranking image failed: {exc}")
+            return ""
 
     def _build_detail_report(
         self, group_id: str, period: str, now: datetime, target_id: str = ""
@@ -612,6 +968,9 @@ class DailyScorePlugin(Star):
     def _iso_week_key(self, value: datetime) -> str:
         iso = value.isocalendar()
         return f"{iso.year}-W{iso.week:02d}"
+
+    def _month_key(self, value: datetime) -> str:
+        return value.strftime("%Y-%m")
 
     def _format_record_time(self, record: Dict[str, Any], now: datetime) -> str:
         timestamp = record.get("timestamp")

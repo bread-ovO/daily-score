@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.5.0
+
+- 报告改为使用 AstrBot 自带 HTML t2i 模板渲染智人排行图片。
+- 新增 `/score monthly`、`/score month` 和 `/score 月榜` 月榜命令。
+- 新增操作者给自己扣分拦截。
+
 ## v1.4.0
 
 - 新增 `reset_user_ids` 配置，只有配置中的用户可以清空积分记录。
